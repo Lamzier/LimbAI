@@ -1,0 +1,34 @@
+<component name="ArtifactManager">
+  <artifact type="war" build-on-make="true" name="LimbAI:war exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/LimbAI</output-path>
+    <root id="archive" name="LimbAI.war">
+      <element id="javaee-facet-resources" facet="LimbAI/web/Web" />
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="LimbAI" />
+        </element>
+        <element id="directory" name="lib">
+          <element id="library" level="project" name="Maven: ai.djl.mxnet:mxnet-engine:0.14.0" />
+          <element id="library" level="project" name="Maven: ai.djl.mxnet:mxnet-native-auto:1.8.0" />
+          <element id="library" level="project" name="Maven: ai.djl.mxnet:mxnet-model-zoo:0.14.0" />
+          <element id="library" level="project" name="Maven: ai.djl:api:0.14.0" />
+          <element id="library" level="project" name="Maven: ai.djl:basicdataset:0.14.0" />
+          <element id="library" level="project" name="Maven: ai.djl:model-zoo:0.14.0" />
+          <element id="library" level="project" name="Maven: com.google.code.gson:gson:2.8.6" />
+          <element id="library" level="project" name="Maven: commons-cli:commons-cli:1.4" />
+          <element id="library" level="project" name="Maven: net.java.dev.jna:jna:5.9.0" />
+          <element id="library" level="project" name="Maven: org.apache.commons:commons-compress:1.21" />
+          <element id="library" level="project" name="Maven: org.apache.commons:commons-csv:1.8" />
+          <element id="library" level="project" name="Maven: org.apache.logging.log4j:log4j-api:2.15.0" />
+          <element id="library" level="project" name="Maven: org.apache.logging.log4j:log4j-core:2.15.0" />
+          <element id="library" level="project" name="Maven: org.apache.logging.log4j:log4j-slf4j-impl:2.15.0" />
+          <element id="library" level="project" name="Maven: org.slf4j:slf4j-api:1.7.32" />
+          <element id="library" level="project" name="Maven: org.yaml:snakeyaml:1.30" />
+          <element id="library" level="module" name="Maven: org:opencv:4.5.5" module-name="LimbAI" />
+          <element id="library" level="project" name="Maven: commons-fileupload:commons-fileupload:1.4" />
+          <element id="library" level="project" name="Maven: commons-io:commons-io:2.11.0" />
+        </element>
+      </element>
+    </root>
+  </artifact>
+</component>
