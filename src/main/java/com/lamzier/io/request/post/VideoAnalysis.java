@@ -4,23 +4,27 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
+import ai.djl.translate.TranslateException;
 import com.lamzier.io.StartMain;
-import com.lamzier.io.detection.ModelFinal;
-import com.lamzier.io.detection.Person;
-import com.lamzier.io.detection.Person50;
-import com.sun.jmx.snmp.agent.SnmpUserDataFactory;
+import com.lamzier.io.motion.Analysis;
+import com.lamzier.io.motion.Badminton;
+import com.lamzier.io.motion.Score;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.highgui.HighGui;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
+import org.opencv.videoio.VideoWriter;
 import org.opencv.videoio.Videoio;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
@@ -119,9 +123,6 @@ public class VideoAnalysis extends HttpServlet {
             resp.sendRedirect("../index.html");//重定向
             return;
         }
-
-
-
         clean();
         resp.sendRedirect("../index.html");//重定向
     }
@@ -130,7 +131,8 @@ public class VideoAnalysis extends HttpServlet {
      * 分析视频
      */
     private boolean analysis(){
-        VideoCapture videoCapture = new VideoCapture(outFile.toString());
+        VideoCapture videoCapture = new VideoCapture();
+        videoCapture.open(outFile.getPath());
         if(!videoCapture.isOpened()){
             LOGGER.log(Level.WARNING , "视频打开失败！");
             return false;
@@ -138,8 +140,6 @@ public class VideoAnalysis extends HttpServlet {
         int frameWidth = (int) videoCapture.get(Videoio.CAP_PROP_FRAME_WIDTH);
         int frameHeight = (int) videoCapture.get(Videoio.CAP_PROP_FRAME_HEIGHT);
         int frameCount = (int) videoCapture.get(Videoio.CAP_PROP_FRAME_COUNT);//总帧数
-        Person person = ModelFinal.getPerson();//获取人模型
-        Person50 person50 = ModelFinal.getPerson50();//获取关键点模型
         String name = getOnlyName() + ".mp4";
         File outAnalysisFile = new File(StartMain.PORJECT_PATH + "Ayalysis" , name);
         if(!outAnalysisFile.getParentFile().exists()){
@@ -149,13 +149,48 @@ public class VideoAnalysis extends HttpServlet {
             }
         }
         //与桌面版不同，这里不需要展示GUI界面
+        Size size = new Size(frameWidth,frameHeight);
         Mat mat = new Mat();
+        VideoWriter videoWriter = new VideoWriter(
+                outAnalysisFile.toString(),//生成路径
+                VideoWriter.fourcc('M', 'P', '4', '2'),//生成品质
+                30.0,//帧率
+                size,//大小
+                true//是否显示演示
+        );
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
+        int speed_progress = 0;
+        Analysis analysis = new Analysis();//动作分析类
+        Score score = new Badminton();//指定羽毛球评分算法
+
+        while(videoCapture.read(mat)){//读取每一帧 注意这里可以使用多线程完成
+            Mat dst = new Mat();//快照
+            Imgproc.resize(mat,dst,size);
+            if(dst.empty()){
+                LOGGER.log(Level.SEVERE , "视频分析异常！");
+                return false;
+            }
+            try {
+                analysis.draw(dst , videoCapture);
+                //初始化，画线 ,此过程会对mat进行修改
+                analysis.score(score);//开始评分算法
+                HighGui.imshow("测试" , dst);
 
 
+            } catch (TranslateException e) {
+                e.printStackTrace();
+                LOGGER.log(Level.SEVERE , "推理过程异常！");
+                return false;
+            }
+            //推理完毕
+            videoWriter.write(dst);
+            System.out.println(speed_progress + " / " + frameCount);//进度条
+            speed_progress++;
 
-
-
-
+            HighGui.waitKey(5);
+        }
+        videoCapture.release();//释放资源
+        videoWriter.release();//释放资源
         return true;
     }
 
@@ -175,7 +210,7 @@ public class VideoAnalysis extends HttpServlet {
      * 获取唯一名字（用于临时取名），加锁
      */
     private synchronized static String getOnlyName(){
-        return String.valueOf(System.currentTimeMillis()) + "+++" + tempNameCount++;
+        return System.currentTimeMillis() + "+++" + tempNameCount++;
     }
 
     @Override

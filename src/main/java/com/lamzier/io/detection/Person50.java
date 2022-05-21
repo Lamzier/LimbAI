@@ -60,7 +60,7 @@ public class Person50 {
     /**
      * 预测
      */
-    protected Joints predict(Image image) throws TranslateException {
+    public Joints predict(Image image) throws TranslateException {
         return predictor.predict(image);
     }
 

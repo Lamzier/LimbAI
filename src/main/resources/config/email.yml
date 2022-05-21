@@ -1,0 +1,23 @@
+host: "smtp.qq.com"
+
+port: "465"
+
+# 使用JSSE的SSL
+socketFactory_class: "javax.net.ssl.SSLSocketFactory"
+
+auth: "true"
+
+starttls_enable: "true"
+
+# socket-factory来取代默认的socket-factory
+# 只处理SSL的连接,对于非SSL的连接不做处理
+socketFactory_fallback: "false"
+
+socketFactory_port: "465"
+
+ssl_enable: "true"
+
+email_user: [
+  {username: "2948725521@qq.com" , password: "ifctowjmetojdhab"}
+]
+

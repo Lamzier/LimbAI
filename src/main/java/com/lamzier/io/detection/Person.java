@@ -56,7 +56,7 @@ public class Person {
     /**
      * 预测
      */
-    protected DetectedObjects predict(Image image) throws TranslateException {
+    public DetectedObjects predict(Image image) throws TranslateException {
         return predictor.predict(image);
     }
 
