@@ -25,10 +25,10 @@ public class Analysis {
     private static final double CONFIDENCE_PERSON = 0.1;//人置信度
     private static final int thickness = 50;//粗细比例 0 ~ 100
 
-    private final List<Point> POINT_LIST = new ArrayList<>(17);//相对个体点，用于动作判断
+    private final List<Point> POINT_LIST = new ArrayList<>();//相对个体点，用于动作判断
     //注意动作识别的置信度低的点直接被填充为null
-    private final List<Double> CONFIDENCE_LIST = new ArrayList<>(17);//置信度
-    private final List<Point> POINT_FRAME_LIST = new ArrayList<>(17);//相对整体点，用于显示
+    private final List<Double> CONFIDENCE_LIST = new ArrayList<>();//置信度
+    private final List<Point> POINT_FRAME_LIST = new ArrayList<>();//相对整体点，用于显示
 
     /**
      * 清理原来数据
@@ -103,7 +103,7 @@ public class Analysis {
             POINT_LIST.add(null);
             POINT_FRAME_LIST.add(new Point(0,0));
             CONFIDENCE_LIST.add(0.0);
-        }
+        }//完成补全数据
         //左右眼线
         Scalar scalar_24_13 = new Scalar(100,100,100);
         //左眼线
@@ -239,7 +239,6 @@ public class Analysis {
      */
     public void score(Score score){
         score.run(POINT_LIST);
-
     }
 
 

@@ -1,13 +1,182 @@
-<!DOCTYPE html>
+<!--<!DOCTYPE html>-->
 <html lang="cn">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+	<title>肢识科技 | LambAI</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<script type="application/x-javascript">
+		addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); }
+	</script>
+	<link href="css/style.css" rel='stylesheet' type='text/css' media="all">
+	<link rel="stylesheet" href="css/font-awesome.min.css" />
+	<link rel="shortcut icon" href="images/logo.ico">
+	<script type='text/javascript' src='js/lamzy.js'></script>
 </head>
+
 <body>
-    <form method="post" action="user/videoanalysis" enctype="multipart/form-data">
-        <input name="video" type="file" MULTIPLE>
-        <input type="submit">
-    </form>
+
+<h1 class="header-w3ls">
+	让每一个人都能在做运动时更加健康</h1>
+<div class="appointment-w3">
+	<form action="user/videoanalysis" method="post" enctype="multipart/form-data">
+		<h2 style="font-weight: bolder;color: azure;">我们的初衷是为了提醒人们注意在平时体育运动中出现的错误动作。健身强身健体固然是一件好事，但是很少人会重视自己的动作是否正确到位。不正确的运动动作，轻则锻炼效果不佳，重则增加受伤风险甚至对身体造成永久性损伤。</h2>
+		<div class="line-w3ls"> </div>
+		<input type="text" name="href" hidden="true" value="" id="input_url">
+		<script>
+			let href = window.location.href
+			let temp = href.split("?")//分割
+			let url = temp[0]
+			let input_url = document.getElementById("input_url")
+			input_url.setAttribute("value" , url)
+		</script>
+		<div class="login-w3ls">
+
+			<div class="icons-agile">
+				<span class="fa fa-user" aria-hidden="true"></span>
+				<input type="text" name="name" placeholder="您的昵称" required="">
+				<div class="clear"></div>
+			</div>
+			<div class="icons-agile">
+				<span class="fa fa-envelope" aria-hidden="true"></span>
+				<input type="email" name="email" placeholder="电子邮箱" required="">
+				<div class="clear"></div>
+			</div>
+			<div class="icons-agile" style="margin-bottom: 0;">
+				<span class="fa fa-key" aria-hidden="true"></span>
+				<input type="text" name="key" placeholder="体验密匙" required="">
+				<div class="clear"></div>
+			</div>
+			<style>
+				.a-bottom{
+					color: aliceblue;
+					position: absolute;
+					right: 0;
+				}
+				.a-bottom :hover{
+					color: rgb(168, 115, 218);
+				}
+			</style>
+			<div class="icons-agile a-bottom" style="margin-bottom: 3em;width: 100%;display: flex;position: relative;">
+				<a href="#" onclick="showQQ()" class="a-bottom">
+					没有密匙？</a>
+				<div class="clear"></div>
+			</div>
+			<script>
+				function showQQ(){
+					window.alert("请联系管理员：\nQQ：1255461704\nWeChat：15322089106")
+				}
+			</script>
+			<div class="icons-agile" style="">
+				<span class="fa fa-sort-desc" aria-hidden="true"></span>
+				<select class="form-control buttom" onchange="typeChange()" id="typeSelect">
+					<option value="0">基础分析</option>
+					<option value="1">羽毛球-击打高远球</option>
+					<option value="0">敬请期待</option>
+				</select>
+				<input type="number" name="type" value="0" placeholder="0" hidden="true" id="input_type">
+				<script>
+					//修改下拉框内容
+					function typeChange(e){
+						let typeSelect = document.getElementById("typeSelect")
+						let index = typeSelect.selectedIndex
+						let value = typeSelect.options[index].value
+						let input_type = document.getElementById("input_type")
+						input_type.setAttribute("value" , value)
+					}
+				</script>
+			</div>
+			<div class="icons-agile a-bottom" style="margin-bottom: 3em;width: 100%;display: flex;position: relative;">
+				<a href="#" onclick="showTypeTips()" class="a-bottom">
+					如何选择？</a>
+				<div class="clear"></div>
+			</div>
+			<script>
+				function showTypeTips(){
+					window.alert("目前一共有两个选择（基础分析、羽毛球-击打高远球\n" +
+							"基础分析：不对动作进行任何评分只分析基础动作\n" +
+							"羽毛球-击打高远球：分析动作但是目前只是测试版本可能无法正确反馈")
+				}
+			</script>
+			<div class="clear"></div>
+			<div class="file-upload">
+				<div class="file-select">
+					<div class="file-select-button" id="fileName">选择视频文件（仅支持mp4）</div>
+					<div class="file-select-name" id="noFile">没有选择文件...</div>
+					<input type="file" name="video" id="chooseFile" MULTIPLE>
+				</div>
+			</div>
+			<div class="btnn">
+				<input type="submit" value="提交">
+			</div>
+			<div style="color: rgb(174, 175, 175);font-weight: bolder;width: 100%;text-align: center;margin-top: 0.5em;">前面有
+				<span id="waitPersion">0</span> 人在等待</div>
+			<script>
+				let waitPersion = document.getElementById("waitPersion")
+
+				getWaitPersion()
+				setInterval(function (){
+					getWaitPersion()
+				} , 1000)//每10秒刷新
+
+				function getWaitPersion(){
+					let xhr = new XMLHttpRequest();
+					xhr.open("GET" , server_url + "getAnalysisQueue")//访问地址
+					xhr.onreadystatechange = function () {
+						if (xhr.readyState == 4 && xhr.status == 200) {//连接成功
+							let data = xhr.responseText;
+							console.log(data)
+							data = JSON.parse(data);
+							let persion_num = data.persion_num
+
+							waitPersion.innerText = persion_num
+						}else {//连接不成功
+							waitPersion.innerText = "NaN"
+						}
+					}
+					xhr.send();
+				}
+
+			</script>
+		</div>
+	</form>
+</div>
+<div class="copy">
+	<p>&copy;2022 - NOW LambAI All Rights Reserved | Design by <a href="http://gdei.lamzy.top/" target="_blank">肢识科技</a></p>
+	<p>备案信息 <a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2020131021号-1</a></p>
+</div>
+<script type='text/javascript' src='js/jquery-2.2.3.min.js'></script>
+<script>
+	$('#chooseFile').bind('change', function () {
+		var filename = $("#chooseFile").val();
+		if (/^\s*$/.test(filename)) {
+			$(".file-upload").removeClass('active');
+			$("#noFile").text("没有选择文件...");
+		}
+		else {
+			$(".file-upload").addClass('active');
+			$("#noFile").text(filename.replace("C:\\fakepath\\", ""));
+		}
+	});
+</script>
+<script>
+	showMessage()
+
+	function showMessage(){
+		let href = window.location.href
+		let temp = href.split("?")
+		if (temp.length < 2) return//不满足
+		let content = temp[1].split("&")//分割
+		for (let i = 0 ; i < content.length ; i++){//遍历
+			let map = content[i].split("=")
+			if(map.length != 2) return
+			let key = map[0] + ""
+			let value = map[1] + ""
+			if(key.toLowerCase() == "message"){
+				let value_und = decodeURI(value)//url解码
+				window.alert(value_und)
+			}
+		}
+	}
+</script>
 </body>
+
 </html>

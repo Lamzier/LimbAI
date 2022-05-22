@@ -163,6 +163,8 @@ public class Badminton extends Score{
         return true;
     }
 
-
-
+    @Override
+    public String getName() {
+        return "羽毛球-击打高远球";
+    }
 }

@@ -11,8 +11,9 @@ public abstract class Score {
 
     WrongActions wrongActions;//错误集合
 
-
     abstract public void run(List<Point> pointList);
+
+    abstract public String getName();
 
 
 

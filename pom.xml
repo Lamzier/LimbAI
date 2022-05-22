@@ -21,7 +21,6 @@
             <groupId>org</groupId>
             <artifactId>opencv</artifactId>
             <version>4.5.5</version>
-<!--            <version>3.4.2</version>-->
             <scope>system</scope>
             <systemPath>${project.basedir}/src/main/resources/library/opencv-455.jar</systemPath>
         </dependency>
@@ -120,7 +119,13 @@
             <artifactId>jakarta.mail</artifactId>
             <version>1.6.4</version>
         </dependency>
-
+<!--        JSON-->
+        <!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>2.0.3</version>
+        </dependency>
     </dependencies>
     
 </project>

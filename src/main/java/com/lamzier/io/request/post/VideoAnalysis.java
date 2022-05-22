@@ -1,30 +1,23 @@
 package com.lamzier.io.request.post;
 
+import com.alibaba.fastjson.JSONObject;
+import com.lamzier.io.StartMain;
+import com.lamzier.io.motion.Badminton;
+import com.lamzier.io.motion.Default;
+import com.lamzier.io.motion.Score;
+import com.lamzier.io.queue.AnalysisTask;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import ai.djl.translate.TranslateException;
-import com.lamzier.io.StartMain;
-import com.lamzier.io.motion.Analysis;
-import com.lamzier.io.motion.Badminton;
-import com.lamzier.io.motion.Score;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
-import org.opencv.highgui.HighGui;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.videoio.VideoCapture;
-import org.opencv.videoio.VideoWriter;
-import org.opencv.videoio.Videoio;
-
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
@@ -39,51 +32,94 @@ public class VideoAnalysis extends HttpServlet {
     //允许接受的后缀
     private static final HashSet<String> SUFFIX = new HashSet<>();
     private static final Logger LOGGER = Logger.getLogger(VideoAnalysis.class.getName());
-    private File outFile;
 
     static {
         SUFFIX.add("mp4");
     }
 
     @Override
-    public void init(){
-//        super.init();
-    }
-
-    @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        PrintWriter writer = resp.getWriter();//获取写出器
         DiskFileItemFactory diskFileItemFactory = new DiskFileItemFactory();
         //解析器
         ServletFileUpload servletFileUpload = new ServletFileUpload(diskFileItemFactory);
         //解决上传为中文乱码问题
         servletFileUpload.setHeaderEncoding("utf-8");
-        List<FileItem> fileItems = null;
+        List<FileItem> fileItems;
         try {
             fileItems = servletFileUpload.parseRequest(req);
-        } catch (FileUploadException e) {//没有数据
+        } catch (Exception e) {//没有数据
             e.printStackTrace();
-            LOGGER.log(Level.WARNING , "表单异常！");
-            resp.sendRedirect("../index.html");//重定向
+            resp.setContentType("application/json");//设置json返回数据
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("code" , -1);
+            jsonObject.put("msg" , "表单异常！");
+            writer.println(jsonObject.toJSONString());
             return;
         }
         FileItem video = null;
+        String href = null;//跳转网址
+        String name = null;//用户昵称
+        String email = null;//邮箱
+        String key = null;//体验密匙
+        String type_str = null;//动作分析类型
         for (FileItem item : fileItems){
             if (item.isFormField()){//表单数据
-//                String key = item.getFieldName();
-//                String value = new String(item.getString()
-//                        .getBytes(StandardCharsets.ISO_8859_1),
-//                        StandardCharsets.UTF_8);//编码转换
-                LOGGER.log(Level.INFO , "有表单数据！");
+                String key_temp = item.getFieldName();
+                String value = new String(item.getString()
+                        .getBytes(StandardCharsets.ISO_8859_1),
+                        StandardCharsets.UTF_8);//编码转换
+                if(key_temp.equalsIgnoreCase("href")){
+                    href = value;
+                }else if (key_temp.equalsIgnoreCase("name")){
+                    name = value;
+                }else if (key_temp.equalsIgnoreCase("email")){
+                    email = value;
+                }else if (key_temp.equalsIgnoreCase("key")){
+                    key = value;
+                }else if (key_temp.equalsIgnoreCase("type")){
+                    type_str = value;
+                }
             }else{//非表单数据
                 video = item;//表单数据
             }
         }
-        if(video == null){
-            LOGGER.log(Level.WARNING , "没有上传视频！");
-            resp.sendRedirect("../index.html");//重定向
+        //校验数据
+        if (href == null || href.length() <= 0){//跳转地址异常
+            href = "../index.html";
+        }//校验表单数据
+        if(video == null || name == null || email == null ||
+                key == null || type_str == null){
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("表单不完整！" , "UTF-8"));//重定向
             return;
         }
-        //校验数据
+        String email_check = "[a-zA-Z0-9_]+@[a-zA-Z0-9_]+(\\.[a-zA-Z0-9]+)+";
+        if(name.length() <= 0 || key.length() <= 0 || !email.matches(email_check)){
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("表单数据异常！" , "UTF-8"));//重定向
+            return;
+        }
+        int type;
+        try {
+            type = Integer.parseInt(type_str);
+        }catch (Exception e){
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("type类型错误！" , "UTF-8"));//重定向
+            return;
+        }
+        Score score = getScore(type);
+        if (score == null){//没有该算法
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("没有此类算法！" , "UTF-8"));//重定向
+            return;
+        }
+        //检查key
+        if(!key.equals("123asd456qwe") && !key.equals("123456789asd..")){
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("密匙不正确！" , "UTF-8"));//重定向
+            return;
+        }
         String[] fileName = video.getName().split("\\.");//上传文件名
         if (fileName.length < 2 ||
                 !SUFFIX.contains(fileName[fileName.length - 1].toLowerCase())){
@@ -93,17 +129,17 @@ public class VideoAnalysis extends HttpServlet {
             return;
         }
         if(video.getSize() > 10485760){//文件大小大于10mb
-            LOGGER.log(Level.WARNING , "文件大小不能大于10mb！！");
-            resp.sendRedirect("../index.html");//重定向
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("文件大小不能大于10mb！！" , "UTF-8"));//重定向
             return;
         }
         //数据校验完成，开始分析，保存到临时位置
-        String name = getOnlyName() + ".mp4";
-        outFile = new File(StartMain.PORJECT_PATH + "temp" , name);
+        String file_name = getOnlyName() + ".mp4";
+        File outFile = new File(StartMain.PORJECT_PATH + "temp", file_name);
         if(!outFile.getParentFile().exists()){//父目录不存在
             if(!outFile.getParentFile().mkdirs()){
-                LOGGER.log(Level.WARNING , "目录创建失败！");
-                resp.sendRedirect("../index.html");//重定向
+                resp.sendRedirect(href + "?message=" +
+                        URLEncoder.encode("目录创建失败！" , "UTF-8"));//重定向
                 return;
             }
         }
@@ -111,97 +147,46 @@ public class VideoAnalysis extends HttpServlet {
             video.write(outFile);
         } catch (Exception e) {
             e.printStackTrace();
-            LOGGER.log(Level.WARNING , "文件写出异常！");
-            resp.sendRedirect("../index.html");//重定向
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("文件写出异常！" , "UTF-8"));//重定向
             return;
         }//保存到了本地临时存储位置
-        //这里需要建立一个新的线程
-        //开始读取分析
-        if(!analysis()){
-            LOGGER.log(Level.WARNING , "视频分析失败！");
-            clean();
-            resp.sendRedirect("../index.html");//重定向
+        File analysisFile = new File(//生成路径
+                StartMain.PORJECT_PATH + "Ayalysis" , file_name);
+        if(!AnalysisTask.addTask(analysisFile , outFile, score , email , name)){//任务添加失败
+            resp.sendRedirect(href + "?message=" +
+                    URLEncoder.encode("当前队列已满！请稍后重试！" , "UTF-8"));//重定向
             return;
         }
-        clean();
-        resp.sendRedirect("../index.html");//重定向
+        //任务队列添加成功
+        resp.sendRedirect(href + "?message=" +
+                URLEncoder.encode("操作成功！请注意邮件查看！可能需要等待3分钟！" , "UTF-8"));//重定向
     }
+
+
 
     /**
-     * 分析视频
+     * 获取评分算法
+     * @param type 评分类型
+     * @return 评分对象
      */
-    private boolean analysis(){
-        VideoCapture videoCapture = new VideoCapture();
-        videoCapture.open(outFile.getPath());
-        if(!videoCapture.isOpened()){
-            LOGGER.log(Level.WARNING , "视频打开失败！");
-            return false;
+    private Score getScore(int type){
+        Score score;
+        switch (type){
+            case 0:
+                score = new Default();
+                break;
+            case 1:
+                score = new Badminton();
+                break;
+            default:
+                score = null;
+                break;
         }
-        int frameWidth = (int) videoCapture.get(Videoio.CAP_PROP_FRAME_WIDTH);
-        int frameHeight = (int) videoCapture.get(Videoio.CAP_PROP_FRAME_HEIGHT);
-        int frameCount = (int) videoCapture.get(Videoio.CAP_PROP_FRAME_COUNT);//总帧数
-        String name = getOnlyName() + ".mp4";
-        File outAnalysisFile = new File(StartMain.PORJECT_PATH + "Ayalysis" , name);
-        if(!outAnalysisFile.getParentFile().exists()){
-            if(!outAnalysisFile.getParentFile().mkdirs()){
-                LOGGER.log(Level.WARNING , "文件创建失败！");
-                return false;
-            }
-        }
-        //与桌面版不同，这里不需要展示GUI界面
-        Size size = new Size(frameWidth,frameHeight);
-        Mat mat = new Mat();
-        VideoWriter videoWriter = new VideoWriter(
-                outAnalysisFile.toString(),//生成路径
-                VideoWriter.fourcc('M', 'P', '4', '2'),//生成品质
-                30.0,//帧率
-                size,//大小
-                true//是否显示演示
-        );
-        DecimalFormat decimalFormat = new DecimalFormat("0.00");
-        int speed_progress = 0;
-        Analysis analysis = new Analysis();//动作分析类
-        Score score = new Badminton();//指定羽毛球评分算法
-
-        while(videoCapture.read(mat)){//读取每一帧 注意这里可以使用多线程完成
-            Mat dst = new Mat();//快照
-            Imgproc.resize(mat,dst,size);
-            if(dst.empty()){
-                LOGGER.log(Level.SEVERE , "视频分析异常！");
-                return false;
-            }
-            try {
-                analysis.draw(dst , videoCapture);
-                //初始化，画线 ,此过程会对mat进行修改
-                analysis.score(score);//开始评分算法
-                HighGui.imshow("测试" , dst);
-
-
-            } catch (TranslateException e) {
-                e.printStackTrace();
-                LOGGER.log(Level.SEVERE , "推理过程异常！");
-                return false;
-            }
-            //推理完毕
-            videoWriter.write(dst);
-            System.out.println(speed_progress + " / " + frameCount);//进度条
-            speed_progress++;
-
-            HighGui.waitKey(5);
-        }
-        videoCapture.release();//释放资源
-        videoWriter.release();//释放资源
-        return true;
+        return score;
     }
 
-    /**
-     * 清理产生的临时文件
-     */
-    private void clean(){
-        if(!outFile.delete()){
-            LOGGER.log(Level.WARNING , "临时文件清理异常！");
-        }
-    }
+
 
     //临时名字数量
     private static int tempNameCount = 0;
